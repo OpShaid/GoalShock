@@ -1,7 +1,4 @@
-"""
-GoalShock Headless Trading Engine
-Autonomous trading system - runs independently without frontend
-"""
+
 import os
 import sys
 import asyncio
@@ -12,12 +9,11 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
-# Import real API clients
+
 from data.api_football import APIFootballClient, Goal, LiveFixture
 from exchanges.polymarket import PolymarketClient
 from exchanges.kalshi import KalshiClient
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s',
@@ -25,16 +21,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment
+
 load_dotenv()
 
 
 @dataclass
 class Position:
-    """Active trading position with entry and P&L tracking"""
+    
     id: str
     market_id: str
-    side: str  # 'YES' or 'NO'
+    side: str  
     entry_price: float
     entry_time: datetime
     size: float
@@ -42,20 +38,20 @@ class Position:
 
     @property
     def pnl_percent(self) -> float:
-        """Calculate current P&L percentage"""
+       
         if self.entry_price == 0:
             return 0.0
         return ((self.current_price - self.entry_price) / self.entry_price) * 100
 
     @property
     def pnl_usd(self) -> float:
-        """Calculate current P&L in USD"""
+   
         return (self.current_price - self.entry_price) * self.size
 
 
 @dataclass
 class GoalEvent:
-    """Real-time goal event from API-Football"""
+    
     fixture_id: int
     minute: int
     team: str
@@ -66,7 +62,7 @@ class GoalEvent:
 
 
 class TradingEngine:
-    """Headless autonomous trading engine"""
+  
 
     def __init__(self):
         # Initialize API clients
@@ -91,10 +87,9 @@ class TradingEngine:
         # Active positions
         self.positions: Dict[str, Position] = {}
 
-        # Pre-match underdog cache (fixture_id -> underdog_team)
         self.underdog_cache: Dict[int, str] = {}
 
-        # Engine state
+       
         self.running = False
 
         logger.info("🤖 GoalShock Trading Engine Initialized")
@@ -104,11 +99,11 @@ class TradingEngine:
         logger.info(f"   Stop-Loss: {self.stop_loss_percent}%")
 
     async def start(self):
-        """Start the autonomous trading engine"""
+    
         logger.info("🚀 Starting Headless Trading Engine...")
         self.running = True
 
-        # Start concurrent tasks
+        
         tasks = [
             asyncio.create_task(self.goal_detection_loop()),
             asyncio.create_task(self.position_monitoring_loop()),
@@ -124,12 +119,12 @@ class TradingEngine:
             self.running = False
 
     async def goal_detection_loop(self):
-        """Continuously monitor for goal events"""
+      
         logger.info("👁️  Goal detection loop started")
 
         while self.running:
             try:
-                # Fetch live fixtures from API-Football
+              
                 fixtures = await self.fetch_live_fixtures()
 
                 if not fixtures:
@@ -137,14 +132,14 @@ class TradingEngine:
                     await asyncio.sleep(10)
                     continue
 
-                # Detect new goals
+                
                 goals = await self.detect_goal_events(fixtures)
 
                 for goal in goals:
                     logger.info(f"⚽ GOAL DETECTED: {goal.player} ({goal.team}) - {goal.minute}'")
                     logger.info(f"   Score: {goal.home_score}-{goal.away_score}")
 
-                    # Convert to GoalEvent format
+                   
                     goal_event = GoalEvent(
                         fixture_id=goal.fixture_id,
                         minute=goal.minute,
@@ -155,10 +150,10 @@ class TradingEngine:
                         timestamp=datetime.now()
                     )
 
-                    # Process potential trade
+            
                     await self.process_goal_event(goal_event)
 
-                # Poll every 10 seconds to respect API rate limits
+               
                 await asyncio.sleep(10)
 
             except Exception as e:
@@ -166,23 +161,22 @@ class TradingEngine:
                 await asyncio.sleep(10)
 
     async def process_goal_event(self, goal: GoalEvent):
-        """Process goal event and execute trade if conditions met"""
+       
 
-        # Step 1: Identify pre-match underdog
+
         underdog_team = await self.identify_pre_match_underdog(goal.fixture_id)
 
         if not underdog_team:
             logger.debug(f"No underdog data for fixture {goal.fixture_id}")
             return
 
-        # Step 2: Check if underdog scored the goal
+        
         if goal.team != underdog_team:
             logger.debug(f"Goal by favorite ({goal.team}), not underdog ({underdog_team})")
             return
 
         logger.info(f"🎯 Underdog {underdog_team} scored!")
-
-        # Step 3: CRITICAL - Verify underdog is now LEADING
+       
         if not await self.is_underdog_leading(goal, underdog_team):
             logger.warning(f"⚠️  {underdog_team} scored but NOT LEADING - NO TRADE")
             logger.info(f"   Score: {goal.home_score} - {goal.away_score}")
@@ -190,24 +184,18 @@ class TradingEngine:
 
         logger.info(f"✅ {underdog_team} is NOW LEADING - EXECUTING TRADE")
 
-        # Step 4: Get current market odds
+     
         market_price = await self.get_market_price(goal.fixture_id, underdog_team)
 
         if not market_price:
             logger.error(f"❌ No market price available for {underdog_team}")
             return
 
-        # Step 5: Execute trade
+    
         await self.execute_trade(goal, underdog_team, market_price)
 
     async def is_underdog_leading(self, goal: GoalEvent, underdog_team: str) -> bool:
-        """
-        CRITICAL VALIDATION: Underdog must be LEADING after scoring
-
-        Returns True ONLY if underdog score > favorite score
-        Returns False if tied or still losing
-        """
-        # Fetch fixture details to determine home/away teams
+    
         fixture_details = await self.api_football.get_fixture_details(goal.fixture_id)
 
         if not fixture_details:
@@ -217,7 +205,7 @@ class TradingEngine:
         home_team = fixture_details["teams"]["home"]["name"]
         away_team = fixture_details["teams"]["away"]["name"]
 
-        # Determine which score belongs to underdog
+      
         if underdog_team == home_team:
             underdog_score = goal.home_score
             favorite_score = goal.away_score
@@ -240,17 +228,12 @@ class TradingEngine:
         return is_leading
 
     async def identify_pre_match_underdog(self, fixture_id: int) -> Optional[str]:
-        """
-        Identify the pre-match underdog based on opening odds
-
-        Lower opening odds = underdog
-        Example: Team A @ 0.65, Team B @ 0.35 → Team B is underdog
-        """
+      
         if fixture_id in self.underdog_cache:
             return self.underdog_cache[fixture_id]
 
         try:
-            # Fetch pre-match odds from Polymarket/Kalshi
+            
             odds = await self.fetch_pre_match_odds(fixture_id)
 
             if not odds:
@@ -259,7 +242,7 @@ class TradingEngine:
             # Find team with lower odds (underdog)
             underdog = min(odds.items(), key=lambda x: x[1])[0]
 
-            # Cache for future lookups
+          
             self.underdog_cache[fixture_id] = underdog
 
             logger.info(f"📊 Pre-match underdog for fixture {fixture_id}: {underdog}")
@@ -270,7 +253,7 @@ class TradingEngine:
             return None
 
     async def execute_trade(self, goal: GoalEvent, team: str, market_price: float):
-        """Execute trade on Polymarket/Kalshi"""
+       
 
         # Check position limits
         if len(self.positions) >= self.max_positions:
@@ -301,11 +284,11 @@ class TradingEngine:
         logger.info(f"   Size: ${self.max_trade_size:.2f}")
         logger.info(f"   Active Positions: {len(self.positions)}")
 
-        # In production: Submit actual order to Polymarket/Kalshi API
-        # await self.submit_order_to_exchange(position)
+       
+        await self.submit_order_to_exchange(position)
 
     async def position_monitoring_loop(self):
-        """Continuously monitor positions for TP/SL triggers"""
+      
         logger.info("📈 Position monitoring loop started")
 
         while self.running:
@@ -341,7 +324,7 @@ class TradingEngine:
 
                             await self.close_position(position_id, "STOP_LOSS")
 
-                # Check positions every 10 seconds
+               
                 await asyncio.sleep(10)
 
             except Exception as e:
@@ -349,50 +332,42 @@ class TradingEngine:
                 await asyncio.sleep(10)
 
     async def close_position(self, position_id: str, reason: str):
-        """Close position and execute exit order"""
+
         position = self.positions.get(position_id)
 
         if not position:
             return
 
-        # In production: Submit exit order to exchange
-        # await self.submit_exit_order(position)
+     
+        await self.submit_exit_order(position)
 
-        # Remove from active positions
+      
         del self.positions[position_id]
 
         logger.info(f"✅ Position closed: {position_id} (Reason: {reason})")
         logger.info(f"   Remaining positions: {len(self.positions)}")
 
-    # ========================================================================
-    # MARKET DATA INTEGRATION - NO PROBABILITY CALCULATIONS
-    # Prices from APIs are ALREADY probabilities (0.35 = 35%)
-    # ========================================================================
+   
 
     async def fetch_live_fixtures(self) -> List[LiveFixture]:
-        """Fetch live fixtures from API-Football"""
+        
         return await self.api_football.get_live_fixtures()
 
     async def detect_goal_events(self, fixtures: List[LiveFixture]) -> List[Goal]:
-        """Detect goals from live fixtures"""
+        
         return await self.api_football.detect_goals(fixtures)
 
     async def fetch_pre_match_odds(self, fixture_id: int) -> Optional[Dict[str, float]]:
-        """
-        Fetch pre-match odds from Polymarket/Kalshi
-
-        Returns: {"Team A": 0.65, "Team B": 0.35}
-        NO CONVERSION - these ARE the probabilities (raw prices from orderbook)
-        """
+       
         try:
-            # Try Polymarket first
+         
             markets = await self.polymarket.get_markets_by_event(f"fixture_{fixture_id}")
 
             if markets:
                 odds = {}
                 for market in markets:
                     team_name = market.get("title", "").split("to win")[0].strip()
-                    # Get YES price from orderbook - this IS the probability
+                 
                     token_id = market.get("clobTokenIds", [None])[0]
                     if token_id:
                         yes_price = await self.polymarket.get_yes_price(token_id)
@@ -402,9 +377,8 @@ class TradingEngine:
                 if odds:
                     return odds
 
-            # Fallback to Kalshi
-            # Search for markets related to this fixture
-            # (In production, you'd have a mapping of fixture_id to market ticker)
+            
+            #for production we would have a mapping of fixture_id to market ticker
             logger.debug(f"No Polymarket odds found for fixture {fixture_id}")
             return None
 
@@ -413,14 +387,9 @@ class TradingEngine:
             return None
 
     async def get_market_price(self, fixture_id: int, team: str) -> Optional[float]:
-        """
-        Get current market price (YES odds) for team to win
-
-        Returns raw price from orderbook (e.g., 0.42 = 42%)
-        NO IMPLIED PROBABILITY CALCULATION - DIRECT FROM API
-        """
+       
         try:
-            # Search for market for this team
+         
             markets = await self.polymarket.get_markets_by_event(f"{team} to win")
 
             if markets:
@@ -428,7 +397,7 @@ class TradingEngine:
                 token_id = market.get("clobTokenIds", [None])[0]
 
                 if token_id:
-                    # Get YES price - this is the RAW probability
+                 
                     yes_price = await self.polymarket.get_yes_price(token_id)
                     return yes_price
 
@@ -440,14 +409,9 @@ class TradingEngine:
             return None
 
     async def get_current_price(self, market_id: str) -> Optional[float]:
-        """
-        Get current market price for monitoring positions
-
-        Returns raw price from orderbook - NO CALCULATIONS
-        """
+      
         try:
-            # Extract token_id from market_id
-            # Format: "fixture_123_TeamName"
+          
             parts = market_id.split("_")
             if len(parts) >= 3:
                 team_name = "_".join(parts[2:])
@@ -461,7 +425,7 @@ class TradingEngine:
 
 
 async def run_headless():
-    """Run the trading engine in headless mode"""
+   
     logger.info("=" * 60)
     logger.info("🤖 GOALSHOCK HEADLESS TRADING ENGINE")
     logger.info("=" * 60)
@@ -471,22 +435,22 @@ async def run_headless():
 
 
 async def run_with_dashboard():
-    """Run engine with optional dashboard (imports main.py)"""
+   
     logger.info("=" * 60)
     logger.info("🤖 GOALSHOCK ENGINE + DASHBOARD")
     logger.info("=" * 60)
 
-    # Start headless engine in background
+
     engine = TradingEngine()
     engine_task = asyncio.create_task(engine.start())
 
-    # Start FastAPI dashboard
+  
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
 
 
 def main():
-    """Entry point with CLI argument parsing"""
+  
     parser = argparse.ArgumentParser(
         description="GoalShock - Autonomous Soccer Trading Engine"
     )
