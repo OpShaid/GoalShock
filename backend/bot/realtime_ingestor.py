@@ -1,7 +1,4 @@
-"""
-Real-time soccer data ingestion via WebSocket and HTTP fallback
-Fetches live goal events from API-Football
-"""
+
 import asyncio
 import logging
 from datetime import datetime
@@ -13,9 +10,7 @@ from ..config.settings import settings
 logger = logging.getLogger(__name__)
 
 class RealtimeIngestor:
-    """
-    Ingests real-time soccer data with WebSocket priority and HTTP fallback
-    """
+  
     def __init__(self):
         self.client = httpx.AsyncClient(timeout=settings.WS_TIMEOUT)
         self.active_fixtures: Dict[int, LiveMatch] = {}
@@ -24,12 +19,10 @@ class RealtimeIngestor:
         self.last_request_time = datetime.now()
 
     def register_goal_callback(self, callback: Callable):
-        """Register callback for goal events"""
         self.goal_callbacks.append(callback)
         logger.info(f"Registered goal callback: {callback.__name__}")
 
     async def start(self):
-        """Start ingesting live soccer data"""
         if not settings.is_configured():
             logger.warning("API-Football key not configured - using fallback mode")
             return
@@ -37,32 +30,28 @@ class RealtimeIngestor:
         self.running = True
         logger.info("Starting real-time soccer data ingestion")
 
-        # Start polling task (WebSocket not available for API-Football)
+      
         asyncio.create_task(self._poll_live_matches())
 
     async def stop(self):
-        """Stop ingestion"""
         self.running = False
         await self.client.aclose()
         logger.info("Stopped real-time ingestion")
 
     async def _poll_live_matches(self):
-        """
-        Poll live matches - Rate limited to avoid API quota
-        NOTE: API-Football doesn't support WebSocket, so we use careful polling
-        """
+       
         while self.running:
             try:
-                # Rate limiting
+               
                 await self._rate_limit()
 
-                # Fetch live fixtures
+               
                 fixtures = await self._fetch_live_fixtures()
 
                 if fixtures:
                     await self._process_fixtures(fixtures)
 
-                # Longer interval to conserve API calls (10s)
+              
                 await asyncio.sleep(settings.POLL_INTERVAL_SECONDS)
 
             except Exception as e:
@@ -70,14 +59,12 @@ class RealtimeIngestor:
                 await asyncio.sleep(settings.WS_RECONNECT_DELAY)
 
     async def _rate_limit(self):
-        """Rate limiting to avoid hitting API quotas"""
         elapsed = (datetime.now() - self.last_request_time).total_seconds()
         if elapsed < (settings.REQUEST_DELAY_MS / 1000):
             await asyncio.sleep((settings.REQUEST_DELAY_MS / 1000) - elapsed)
         self.last_request_time = datetime.now()
 
     async def _fetch_live_fixtures(self) -> List[Dict]:
-        """Fetch live fixtures from API-Football"""
         try:
             headers = {
                 "x-rapidapi-key": settings.API_FOOTBALL_KEY,
@@ -97,7 +84,6 @@ class RealtimeIngestor:
             data = response.json()
             fixtures = data.get("response", [])
 
-            # Filter to supported leagues only
             filtered = [
                 f for f in fixtures
                 if f.get("league", {}).get("id") in settings.SUPPORTED_LEAGUES
@@ -111,14 +97,11 @@ class RealtimeIngestor:
             return []
 
     async def _process_fixtures(self, fixtures: List[Dict]):
-        """Process fixtures and detect new goals"""
         for fixture_data in fixtures:
             fixture_id = fixture_data["fixture"]["id"]
 
-            # Parse match data
             match = self._parse_live_match(fixture_data)
 
-            # Check for new goals
             if fixture_id in self.active_fixtures:
                 old_match = self.active_fixtures[fixture_id]
                 new_goals = self._detect_new_goals(old_match, match, fixture_data)
@@ -126,11 +109,9 @@ class RealtimeIngestor:
                 for goal in new_goals:
                     await self._notify_goal(goal)
 
-            # Update tracking
             self.active_fixtures[fixture_id] = match
 
     def _parse_live_match(self, fixture_data: Dict) -> LiveMatch:
-        """Parse API-Football fixture data"""
         fixture = fixture_data["fixture"]
         league = fixture_data["league"]
         teams = fixture_data["teams"]
@@ -150,7 +131,6 @@ class RealtimeIngestor:
         )
 
     def _detect_new_goals(self, old: LiveMatch, new: LiveMatch, fixture_data: Dict) -> List[GoalEvent]:
-        """Detect new goals by comparing scores"""
         goals = []
 
         # Home team scored
@@ -159,7 +139,6 @@ class RealtimeIngestor:
             if goal:
                 goals.append(goal)
 
-        # Away team scored
         if new.away_score > old.away_score:
             goal = self._create_goal_event(fixture_data, new.away_team, "away")
             if goal:
@@ -168,9 +147,7 @@ class RealtimeIngestor:
         return goals
 
     def _create_goal_event(self, fixture_data: Dict, team: str, side: str) -> Optional[GoalEvent]:
-        """Create goal event from fixture data"""
         try:
-            # Get latest goal from events
             events = fixture_data.get("events", [])
             goal_events = [e for e in events if e.get("type") == "Goal" and e["team"]["name"] == team]
 
@@ -178,7 +155,7 @@ class RealtimeIngestor:
                 logger.warning(f"No goal event found for {team}")
                 return None
 
-            latest_goal = goal_events[-1]  # Most recent goal
+            latest_goal = goal_events[-1]  
 
             fixture = fixture_data["fixture"]
             league = fixture_data["league"]
@@ -208,7 +185,6 @@ class RealtimeIngestor:
             return None
 
     async def _notify_goal(self, goal: GoalEvent):
-        """Notify all callbacks of new goal"""
         logger.info(f"⚽ GOAL! {goal.player} ({goal.team}) - {goal.minute}' - {goal.home_team} {goal.home_score}-{goal.away_score} {goal.away_team}")
 
         for callback in self.goal_callbacks:
@@ -221,5 +197,4 @@ class RealtimeIngestor:
                 logger.error(f"Goal callback error: {e}")
 
     def get_active_matches(self) -> List[LiveMatch]:
-        """Get currently active matches"""
         return list(self.active_fixtures.values())
