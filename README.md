@@ -23,8 +23,25 @@ GoalShock is a **full-stack real-time trading platform** for soccer prediction m
 ✅ **Auto-fill settings** from environment variables
 ✅ **Advanced market simulation** for backtesting and analysis
 
-### Headless mode (NEW) - Autonomous Soccer Trading Engine
-Headless autonomous trading engine for soccer prediction markets. Runs completely independently via CLI.
+### Headless mode (NEW) 
+🎓 Key Concepts
+1. Headless-First
+Engine runs via CLI
+No frontend dependency
+Dashboard is optional (monitoring only)
+2. No Probability Calculations
+Orderbook prices ARE probabilities
+0.42 = 42%, period
+No conversion formulas
+3. Underdog Leading Validation
+Must be LEADING, not just tied
+underdog_score > favorite_score
+Critical validation before every trade
+4. Continuous Risk Management
+Real-time position monitoring
+Auto-exit on TP/SL thresholds
+Position limits enforced
+
 
 Architecture Real APIs No Calculations
 
@@ -39,7 +56,7 @@ Zero frontend dependency. The engine runs autonomously.
 
 ---
 
-## 🚀 Quick Start New Headless
+## 🚀 Quick Start Headless
 
 ```bash
 # 1. Install dependencies
