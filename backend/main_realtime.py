@@ -1,7 +1,4 @@
-"""
-GoalShock Backend - REAL-TIME Soccer Data Integration
-Integrated real-time goal detection and market price updates
-"""
+
 import os
 import json
 import asyncio
@@ -12,20 +9,19 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-# Real-time components
+
 from bot.realtime_ingestor import RealtimeIngestor
 from bot.market_fetcher import MarketFetcher
 from bot.market_mapper import MarketMapper
 from models.schemas import GoalEvent, MarketPrice, GoalAlert, MarketUpdate
 from config.settings import settings
 
-# Load environment
 load_dotenv()
 
-# Initialize FastAPI
+
 app = FastAPI(title="GoalShock Real-Time API", version="3.0.0")
 
-# CORS configuration
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -34,48 +30,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Logger
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Global real-time system
 class RealtimeSystem:
     def __init__(self):
         self.websocket_clients: Set[WebSocket] = set()
 
-        # Initialize real-time components
         self.ingestor = RealtimeIngestor()
         self.market_fetcher = MarketFetcher()
         self.market_mapper = MarketMapper(self.market_fetcher)
 
-        # Register callbacks
+       
         self.ingestor.register_goal_callback(self.on_goal_detected)
         self.market_fetcher.register_update_callback(self.on_market_update)
 
     async def start(self):
-        """Start real-time data ingestion"""
+       
         logger.info("🚀 Starting GoalShock real-time system")
 
-        # Start ingestion
+        
         await self.ingestor.start()
         await self.market_fetcher.start()
 
         logger.info("✅ Real-time system online")
 
     async def stop(self):
-        """Stop real-time system"""
+        
         logger.info("Stopping real-time system")
         await self.ingestor.stop()
         await self.market_fetcher.stop()
 
     async def on_goal_detected(self, goal: GoalEvent):
-        """
-        Called when a goal is detected in a live match
-        This immediately triggers frontend updates
-        """
+       
         logger.info(f"⚽ GOAL DETECTED: {goal.player} ({goal.team}) - {goal.minute}'")
 
         # Map goal to relevant markets
@@ -94,15 +84,12 @@ class RealtimeSystem:
         logger.info(f"📡 Broadcast goal alert to {len(self.websocket_clients)} clients")
 
     async def on_market_update(self, update: MarketUpdate):
-        """
-        Called when market prices update via WebSocket
-        Immediately pushes to frontend
-        """
+        
         # Broadcast price update
         await self.broadcast(update.dict())
 
     async def broadcast(self, message: dict):
-        """Broadcast message to all WebSocket clients"""
+        "
         if not self.websocket_clients:
             return
 
@@ -119,12 +106,12 @@ realtime_system = RealtimeSystem()
 
 @app.on_event("startup")
 async def startup():
-    """Initialize real-time system on startup"""
+   
     await realtime_system.start()
 
 @app.on_event("shutdown")
 async def shutdown():
-    """Cleanup on shutdown"""
+  
     await realtime_system.stop()
 
 # API Endpoints
@@ -141,7 +128,7 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    """Health check with system status"""
+   
     return {
         "status": "healthy",
         "api_football_configured": settings.is_configured(),
@@ -153,11 +140,10 @@ async def health_check():
 
 @app.get("/api/matches/live")
 async def get_live_matches():
-    """Get all currently live soccer matches"""
+    
     try:
         matches = realtime_system.ingestor.get_active_matches()
 
-        # Enrich with market data
         enriched = []
         for match in matches:
             markets = await realtime_system.market_mapper.get_markets_for_match(match)
@@ -177,16 +163,15 @@ async def get_live_matches():
 
 @app.get("/api/markets/{fixture_id}")
 async def get_markets_for_fixture(fixture_id: int):
-    """Get all markets for a specific fixture"""
+    
     try:
-        # Find the match
+     
         matches = realtime_system.ingestor.get_active_matches()
         match = next((m for m in matches if m.fixture_id == fixture_id), None)
 
         if not match:
             raise HTTPException(status_code=404, detail="Match not found")
 
-        # Get markets
         markets = await realtime_system.market_mapper.get_markets_for_match(match)
 
         return {
@@ -204,10 +189,10 @@ async def get_markets_for_fixture(fixture_id: int):
 
 @app.get("/api/markets/all")
 async def get_all_markets():
-    """Get all cached markets"""
+ 
     markets = realtime_system.market_fetcher.get_all_markets()
 
-    # Filter out stale markets
+  
     fresh_markets = [m for m in markets if not m.is_stale]
 
     return {
@@ -218,7 +203,7 @@ async def get_all_markets():
 
 @app.get("/api/settings/load")
 async def load_settings():
-    """Load current settings from .env file"""
+  
     try:
         return {
             "api_football_key": "***" + settings.API_FOOTBALL_KEY[-4:] if settings.API_FOOTBALL_KEY else "",
@@ -231,13 +216,10 @@ async def load_settings():
         logger.error(f"Failed to load settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# WebSocket for real-time updates
+
 @app.websocket("/ws/live")
 async def websocket_live_feed(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time goal and market updates
-    Frontend connects here to receive instant updates
-    """
+   
     await websocket.accept()
     realtime_system.websocket_clients.add(websocket)
     logger.info(f"✅ WebSocket client connected ({len(realtime_system.websocket_clients)} total)")
@@ -262,9 +244,9 @@ async def websocket_live_feed(websocket: WebSocket):
         # Keep connection alive and handle incoming messages
         while True:
             try:
-                # Wait for messages (ping/pong)
+               
                 data = await websocket.receive_text()
-                # Echo back for ping/pong
+            
                 if data == "ping":
                     await websocket.send_text("pong")
 
