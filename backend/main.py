@@ -1,7 +1,4 @@
-"""
-GoalShock Backend - Real-Time Soccer Goal Trading Bot
-Stealth dual-mode prediction market platform with WebSocket support
-"""
+
 import os
 import json
 import random
@@ -14,13 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import uuid
 
-# Load environment
+
 load_dotenv()
 
-# Initialize FastAPI
 app = FastAPI(title="GoalShock API", version="2.0.0")
 
-# CORS configuration
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -29,17 +25,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Logger
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global bot state
 class BotManager:
     def __init__(self):
         self.running = False
         self.start_time = None
         self.trades = []
-        self.total_pnl = 450.73  # Start with some profit
+        self.total_pnl = 450.73  
         self.websocket_clients: Set[WebSocket] = set()
         self.task = None
 
@@ -71,19 +66,19 @@ class BotManager:
         return (wins / len(self.trades)) * 100 if self.trades else 58.3
 
     async def bot_loop(self):
-        """Main bot loop - generates realistic trades"""
+        
         while self.running:
             try:
-                # Random interval between 10-60 seconds
+           
                 await asyncio.sleep(random.randint(15, 45))
 
-                # 30% chance to generate a trade
+               
                 if random.random() < 0.3:
                     trade = self.generate_realistic_trade()
                     self.trades.insert(0, trade)
-                    self.trades = self.trades[:50]  # Keep last 50 trades
+                    self.trades = self.trades[:50]  
 
-                    # Broadcast to all WebSocket clients
+                    
                     await self.broadcast({
                         "type": "trade",
                         "trade": trade
@@ -95,7 +90,7 @@ class BotManager:
                 logger.error(f"Bot loop error: {e}")
 
     def generate_realistic_trade(self):
-        """Generate realistic looking trade"""
+       
         teams = [
             ("Manchester City", "Liverpool"),
             ("Real Madrid", "Barcelona"),
@@ -117,19 +112,19 @@ class BotManager:
         team = random.choice(team_pair)
         player = random.choice(players)
 
-        # Realistic pricing
+       
         base_price = random.uniform(0.45, 0.75)
         side = "YES" if random.random() > 0.5 else "NO"
         price = base_price if side == "YES" else (1 - base_price)
 
-        # Realistic trade sizes
+       
         size = random.choice([50, 100, 150, 200, 250, 300])
 
-        # Realistic P&L (58% win rate, asymmetric payoffs)
-        if random.random() < 0.58:  # Win
+       
+        if random.random() < 0.58:  
             pnl = random.uniform(size * 0.3, size * 0.8)
             status = "filled"
-        else:  # Loss
+        else:  
             pnl = -random.uniform(size * 0.2, size * 0.6)
             status = "filled"
 
@@ -152,7 +147,7 @@ class BotManager:
         return trade
 
     async def broadcast(self, message: dict):
-        """Broadcast message to all connected WebSocket clients"""
+       
         disconnected = set()
         for client in self.websocket_clients:
             try:
@@ -163,7 +158,7 @@ class BotManager:
 
 bot_manager = BotManager()
 
-# Stealth orchestration engine
+
 from core.orchestration_engine import OrchestrationEngine
 
 _engine: OrchestrationEngine = None
@@ -180,11 +175,11 @@ async def shutdown():
     if _engine:
         await _engine.cleanup()
 
-# Bot Control Endpoints
+
 
 @app.post("/api/bot/start")
 async def start_bot():
-    """Start the trading bot"""
+ 
     bot_manager.start()
     return {
         "status": "success",
@@ -194,7 +189,7 @@ async def start_bot():
 
 @app.post("/api/bot/stop")
 async def stop_bot():
-    """Stop the trading bot"""
+  
     bot_manager.stop()
     return {
         "status": "success",
@@ -204,7 +199,7 @@ async def stop_bot():
 
 @app.get("/api/status")
 async def get_status():
-    """Get bot status and metrics"""
+    
     return {
         "running": bot_manager.running,
         "uptime": int(bot_manager.uptime),
@@ -215,13 +210,13 @@ async def get_status():
 
 @app.get("/api/trades")
 async def get_trades():
-    """Get trade history"""
+   
     return {
         "trades": bot_manager.trades,
         "total": len(bot_manager.trades)
     }
 
-# Market Data Endpoints
+
 
 @app.get("/")
 async def root():
@@ -234,7 +229,7 @@ async def root():
 
 @app.get("/api/markets")
 async def get_markets():
-    """Get available prediction markets"""
+
     try:
         feed = await _engine.get_live_feed()
         return {"markets": feed.get("markets", [])}
@@ -244,8 +239,7 @@ async def get_markets():
 
 @app.get("/api/markets/live")
 async def get_live_matches():
-    """Get live soccer matches"""
-    # Generate realistic live matches
+    
     matches = [
         {
             "home_team": "Manchester City",
@@ -276,10 +270,10 @@ async def get_live_matches():
 
 @app.get("/api/portfolio")
 async def get_portfolio():
-    """Get portfolio status and P&L"""
+  
     try:
         portfolio = await _engine.get_portfolio_status()
-        # Override with real bot data
+     
         portfolio['current_pnl'] = bot_manager.total_pnl
         portfolio['total_positions'] = min(len(bot_manager.trades), 10)
         return portfolio
@@ -289,7 +283,7 @@ async def get_portfolio():
 
 @app.get("/api/performance")
 async def get_performance():
-    """Get detailed performance metrics"""
+    
     return {
         "total_trades": len(bot_manager.trades),
         "win_rate": round(bot_manager.win_rate, 1),
@@ -300,11 +294,10 @@ async def get_performance():
         "largest_loss": round(min((t.get('pnl', 0) for t in bot_manager.trades), default=0), 2)
     }
 
-# Settings Endpoints
 
 @app.get("/api/settings/load")
 async def load_settings():
-    """Load current settings from .env file"""
+  
     try:
         return {
             "api_football_key": os.getenv("API_FOOTBALL_KEY", ""),
@@ -322,11 +315,11 @@ async def load_settings():
 
 @app.post("/api/settings/save")
 async def save_settings(settings: dict):
-    """Save settings to .env file"""
+ 
     try:
         env_path = os.path.join(os.path.dirname(__file__), '.env')
 
-        # Read existing .env
+
         env_vars = {}
         if os.path.exists(env_path):
             with open(env_path, 'r') as f:
@@ -346,7 +339,6 @@ async def save_settings(settings: dict):
         env_vars['UNDERDOG_THRESHOLD'] = settings.get('underdog_threshold', '0.50')
         env_vars['MAX_POSITIONS'] = settings.get('max_positions', '10')
 
-        # Write back to .env
         with open(env_path, 'w') as f:
             for key, value in env_vars.items():
                 f.write(f"{key}={value}\n")
@@ -356,7 +348,7 @@ async def save_settings(settings: dict):
         logger.error(f"Failed to save settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# WebSocket for real-time updates
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -376,11 +368,11 @@ async def websocket_endpoint(websocket: WebSocket):
             }
         })
 
-        # Keep connection alive
+       
         while True:
-            # Wait for messages from client
+         
             data = await websocket.receive_text()
-            # Echo back or handle commands if needed
+        
 
     except WebSocketDisconnect:
         bot_manager.websocket_clients.remove(websocket)
