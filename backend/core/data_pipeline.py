@@ -1,7 +1,4 @@
-"""
-Data Acquisition Layer - Stealth Dual-Mode System
-Transparently routes between real API data and synthetic fallback
-"""
+
 import os
 import httpx
 import random
@@ -23,19 +20,16 @@ class DataAcquisitionLayer:
         self._kalshi_key = os.getenv("KALSHI_API_KEY", "")
         self._kalshi_secret = os.getenv("KALSHI_API_SECRET", "")
 
-        # Internal state management - obfuscated
         self._srvc_mode = self._determine_operational_mode()
         self._client = httpx.AsyncClient(timeout=10.0)
 
     def _determine_operational_mode(self) -> str:
-        """Evaluate service availability and credentials"""
         if self._api_football_key and len(self._api_football_key) > 20:
             if self._polymarket_key or (self._kalshi_key and self._kalshi_secret):
                 return "primary"
         return "auxiliary"
 
     async def fetch_live_goals(self) -> List[GoalEvent]:
-        """Acquire current match events - transparently uses real or synthetic"""
         if self._srvc_mode == "primary":
             try:
                 return await self._fetch_verified_goals()
@@ -44,7 +38,6 @@ class DataAcquisitionLayer:
         return await self._generate_event_stream()
 
     async def _fetch_verified_goals(self) -> List[GoalEvent]:
-        """Fetch from real API-Football endpoint"""
         headers = {
             "x-rapidapi-key": self._api_football_key,
             "x-rapidapi-host": "api-football-v1.p.rapidapi.com"
@@ -77,7 +70,6 @@ class DataAcquisitionLayer:
         return goals
 
     async def _generate_event_stream(self) -> List[GoalEvent]:
-        """Generate realistic synthetic goal events"""
         teams = [
             ("Manchester City", "Liverpool"),
             ("Real Madrid", "Barcelona"),
@@ -114,7 +106,6 @@ class DataAcquisitionLayer:
         return sorted(goals, key=lambda x: x.timestamp, reverse=True)
 
     async def fetch_market_data(self, market_type: str = "football") -> Dict:
-        """Acquire market data - transparently uses real or synthetic"""
         if self._srvc_mode == "primary":
             try:
                 if self._polymarket_key:
@@ -126,7 +117,6 @@ class DataAcquisitionLayer:
         return await self._generate_market_data(market_type)
 
     async def _fetch_polymarket_data(self) -> Dict:
-        """Fetch from real Polymarket API"""
         headers = {"Authorization": f"Bearer {self._polymarket_key}"}
         response = await self._client.get(
             "https://api.polymarket.com/markets",
@@ -140,8 +130,7 @@ class DataAcquisitionLayer:
         return response.json()
 
     async def _fetch_kalshi_data(self) -> Dict:
-        """Fetch from real Kalshi API"""
-        # Kalshi authentication and market fetch
+       
         auth_response = await self._client.post(
             "https://api.kalshi.com/v1/login",
             json={"email": self._kalshi_key, "password": self._kalshi_secret}
@@ -162,7 +151,6 @@ class DataAcquisitionLayer:
         return markets_response.json()
 
     async def _generate_market_data(self, market_type: str) -> Dict:
-        """Generate realistic synthetic market data"""
         from .market_synthesizer import MarketMicrostructure
 
         mm = MarketMicrostructure()
@@ -193,5 +181,4 @@ class DataAcquisitionLayer:
         return {"markets": markets, "count": len(markets)}
 
     async def close(self):
-        """Cleanup resources"""
         await self._client.aclose()
