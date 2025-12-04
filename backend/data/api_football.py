@@ -1,7 +1,4 @@
-"""
-API-Football Integration
-Real-time goal detection from live soccer matches
-"""
+
 import os
 import asyncio
 import httpx
@@ -24,13 +21,12 @@ class LiveFixture:
     home_score: int
     away_score: int
     minute: int
-    status: str  # "1H", "HT", "2H", "FT"
+    status: str 
     timestamp: datetime
 
 
 @dataclass
 class Goal:
-    """Goal event"""
     fixture_id: int
     team: str
     player: str
@@ -41,35 +37,30 @@ class Goal:
 
 
 class APIFootballClient:
-    """API-Football client for real-time goal detection"""
 
     def __init__(self):
         self.api_key = os.getenv("API_FOOTBALL_KEY", "")
         self.base_url = "https://api-football-v1.p.rapidapi.com/v3"
         self.client = httpx.AsyncClient(timeout=10.0)
 
-        # Cache previous scores to detect new goals
-        self.previous_scores: Dict[int, tuple] = {}  # {fixture_id: (home, away)}
+        
+        self.previous_scores: Dict[int, tuple] = {}  
 
-        # Supported leagues for goal detection
+      
         self.supported_leagues = [
-            39,   # Premier League
-            140,  # La Liga
-            78,   # Bundesliga
-            135,  # Serie A
-            61,   # Ligue 1
-            2,    # Champions League
+            39,   
+            140,  
+            78,   
+            135,  
+            61,   
+            2,    
         ]
 
         logger.info("⚽ API-Football client initialized")
         logger.info(f"   Monitoring {len(self.supported_leagues)} leagues")
 
     async def get_live_fixtures(self) -> List[LiveFixture]:
-        """
-        Fetch all live fixtures across supported leagues
-
-        Returns list of LiveFixture objects
-        """
+        
         try:
             response = await self.client.get(
                 f"{self.base_url}/fixtures",
@@ -87,7 +78,6 @@ class APIFootballClient:
             data = response.json()
             fixtures_data = data.get("response", [])
 
-            # Filter to supported leagues
             fixtures = []
             for f in fixtures_data:
                 league_id = f["league"]["id"]
@@ -120,31 +110,25 @@ class APIFootballClient:
             return []
 
     async def detect_goals(self, fixtures: List[LiveFixture]) -> List[Goal]:
-        """
-        Detect new goals by comparing current scores with previous scores
-
-        Returns list of Goal events for newly scored goals
-        """
+        
         new_goals = []
 
         for fixture in fixtures:
             fixture_id = fixture.fixture_id
             current_score = (fixture.home_score, fixture.away_score)
 
-            # Check if we have previous score
+           
             if fixture_id not in self.previous_scores:
-                # First time seeing this fixture, store score
                 self.previous_scores[fixture_id] = current_score
                 continue
 
             previous_score = self.previous_scores[fixture_id]
 
-            # Detect home team goal
             if current_score[0] > previous_score[0]:
                 goal = Goal(
                     fixture_id=fixture_id,
                     team=fixture.home_team,
-                    player="Unknown",  # Get from events endpoint if needed
+                    player="Unknown", 
                     minute=fixture.minute,
                     home_score=current_score[0],
                     away_score=current_score[1]
@@ -153,7 +137,6 @@ class APIFootballClient:
 
                 logger.info(f"⚽ GOAL! {fixture.home_team} {current_score[0]}-{current_score[1]} {fixture.away_team} ({fixture.minute}')")
 
-            # Detect away team goal
             if current_score[1] > previous_score[1]:
                 goal = Goal(
                     fixture_id=fixture_id,
@@ -167,24 +150,19 @@ class APIFootballClient:
 
                 logger.info(f"⚽ GOAL! {fixture.home_team} {current_score[0]}-{current_score[1]} {fixture.away_team} ({fixture.minute}')")
 
-            # Update previous score
             self.previous_scores[fixture_id] = current_score
 
         return new_goals
 
     async def get_pre_match_odds(self, fixture_id: int) -> Optional[Dict[str, float]]:
-        """
-        Get pre-match odds from bookmakers
+      
 
-        Returns: {"Home": 0.45, "Draw": 0.30, "Away": 0.55}
-
-        Note: These are bookmaker odds, NOT market prices
-        For actual trading, use Polymarket/Kalshi odds
-        """
+        #Daniel Note: These are bookmaker odds, NOT market prices For actual trading, we use Polymarket/Kalshi odds
+        
         try:
             response = await self.client.get(
                 f"{self.base_url}/odds",
-                params={"fixture": fixture_id, "bookmaker": 1},  # Bet365
+                params={"fixture": fixture_id, "bookmaker": 1},  
                 headers={
                     "x-rapidapi-key": self.api_key,
                     "x-rapidapi-host": "api-football-v1.p.rapidapi.com"
@@ -201,7 +179,6 @@ class APIFootballClient:
             if not response_data:
                 return None
 
-            # Extract match winner odds
             bookmaker = response_data[0]
             bets = bookmaker.get("bookmakers", [{}])[0].get("bets", [])
 
@@ -211,8 +188,7 @@ class APIFootballClient:
 
                     odds_dict = {}
                     for v in values:
-                        # Convert decimal odds to probability
-                        # 2.00 odds = 1/2.00 = 0.50 (50%)
+                       
                         decimal_odds = float(v["odd"])
                         probability = 1 / decimal_odds
 
@@ -227,7 +203,6 @@ class APIFootballClient:
             return None
 
     async def get_fixture_details(self, fixture_id: int) -> Optional[Dict]:
-        """Get detailed fixture information"""
         try:
             response = await self.client.get(
                 f"{self.base_url}/fixtures",
@@ -251,5 +226,4 @@ class APIFootballClient:
             return None
 
     async def close(self):
-        """Close HTTP client"""
         await self.client.aclose()
