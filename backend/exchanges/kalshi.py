@@ -1,7 +1,4 @@
-"""
-Kalshi API Integration
-Direct orderbook access - NO probability calculations
-"""
+
 import os
 import asyncio
 import httpx
@@ -13,19 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 class KalshiClient:
-    """
-    Kalshi Exchange API client
-
-    Prices are CENTS (0-100 scale):
-    - YES @ 42 cents = 42% probability
-    - NO @ 58 cents = 58% probability
-
-    We convert cents to decimal (42 → 0.42) but NO implied probability math
-    """
+    
+    #We convert cents to decimal (42 → 0.42) but NO/0! implied probability math
+    
 
     def __init__(self):
-        self.api_key = os.getenv("KALSHI_API_KEY", "")  # Email
-        self.api_secret = os.getenv("KALSHI_API_SECRET", "")  # Password
+        self.api_key = os.getenv("KALSHI_API_KEY", "")  
+        self.api_secret = os.getenv("KALSHI_API_SECRET", "")  
         self.base_url = "https://trading-api.kalshi.com/trade-api/v2"
         self.client = httpx.AsyncClient(timeout=10.0)
         self.auth_token = None
@@ -33,7 +24,6 @@ class KalshiClient:
         logger.info("📊 Kalshi client initialized")
 
     async def login(self) -> bool:
-        """Authenticate with Kalshi and get session token"""
         try:
             response = await self.client.post(
                 f"{self.base_url}/login",
@@ -53,15 +43,7 @@ class KalshiClient:
             return False
 
     async def get_markets(self, event_ticker: str = None, status: str = "active") -> List[Dict]:
-        """
-        Get markets from Kalshi
-
-        Args:
-            event_ticker: Filter by event (e.g., "SOCCER-MANCITY-2024")
-            status: "active", "settled", or "all"
-
-        Returns list of markets with YES/NO prices
-        """
+      
         if not self.auth_token:
             await self.login()
 
@@ -90,20 +72,7 @@ class KalshiClient:
             return []
 
     async def get_orderbook(self, ticker: str) -> Optional[Dict]:
-        """
-        Get orderbook for a specific market
-
-        Returns:
-        {
-            "ticker": "SOCCER-MANCITY-YES",
-            "yes_bid": 42,  # 42 cents = 42%
-            "yes_ask": 44,  # 44 cents = 44%
-            "no_bid": 56,
-            "no_ask": 58
-        }
-
-        CRITICAL: Cents are RAW probabilities (42 cents = 0.42 = 42%)
-        """
+       
         if not self.auth_token:
             await self.login()
 
@@ -127,11 +96,11 @@ class KalshiClient:
                 logger.warning(f"Empty orderbook for {ticker}")
                 return None
 
-            # Extract best prices (in cents)
-            yes_bid = yes_bids[0][0] if yes_bids else 0  # Best YES buy price
-            yes_ask = no_bids[0][0] if no_bids else 100  # Best YES sell price (inverse of NO bid)
+           
+            yes_bid = yes_bids[0][0] if yes_bids else 0 
+            yes_ask = no_bids[0][0] if no_bids else 100  
 
-            # Convert cents to decimal (42 → 0.42)
+          
             yes_bid_decimal = yes_bid / 100
             yes_ask_decimal = yes_ask / 100
             mid_price = (yes_bid_decimal + yes_ask_decimal) / 2
@@ -155,18 +124,13 @@ class KalshiClient:
             return None
 
     async def get_yes_price(self, ticker: str) -> Optional[float]:
-        """
-        Get current YES price (to buy outcome)
-
-        Returns raw probability (e.g., 0.42 = 42%)
-        NO IMPLIED PROBABILITY CALCULATION - DIRECT CONVERSION FROM CENTS
-        """
+       
         orderbook = await self.get_orderbook(ticker)
 
         if not orderbook:
             return None
 
-        # Return best ask (price to buy YES) in decimal
+        
         yes_price = orderbook["yes_ask"]
 
         logger.info(f"YES price for {ticker}: {yes_price:.4f} ({yes_price*100:.1f}%)")
@@ -176,23 +140,12 @@ class KalshiClient:
     async def place_order(
         self,
         ticker: str,
-        side: str,  # 'yes' or 'no'
-        action: str,  # 'buy' or 'sell'
-        count: int,  # Number of contracts
-        price: int  # Price in cents (e.g., 42 for 42%)
+        side: str, 
+        action: str,  
+        count: int,  
+        price: int  
     ) -> Optional[Dict]:
-        """
-        Place limit order on Kalshi
-
-        Args:
-            ticker: Market ticker
-            side: 'yes' or 'no'
-            action: 'buy' or 'sell'
-            count: Number of contracts
-            price: Limit price in CENTS (0-100)
-
-        Returns order confirmation or None if failed
-        """
+       
         if not self.auth_token:
             await self.login()
 
@@ -227,5 +180,4 @@ class KalshiClient:
             return None
 
     async def close(self):
-        """Close HTTP client"""
         await self.client.aclose()
