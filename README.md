@@ -1,4 +1,4 @@
-# GoalShock - Real-Time Soccer Goal Trading Platform
+# GoalShock v1.1 - Real-Time Soccer Goal Trading Platform
 
 A high-speed trading bot that detects underdog goals in real-time and executes trades on Kalshi/Polymarket with sub-second latency. Features a production-grade React dashboard with smooth water ripple effects, custom cursor, and real-time data visualization.
 
@@ -65,33 +65,26 @@ npm run dev
 
 ---
 
-## 🚢 Deploy to Vercel
+---
 
-### Frontend Deployment
+## 🚀 Quick Start
 
 ```bash
-cd app
-npm run build
+# 1. Install dependencies
+cd backend
+pip install -r requirements.txt
 
-# Deploy to Vercel
-npx vercel --prod
+# 2. Configure API keys
+cp .env.example .env
+nano .env  # Add your API keys
+
+# 3. Run headless engine
+python engine.py --mode headless
 ```
 
-Or connect your GitHub repo to Vercel:
-1. Push code to GitHub
-2. Import project in Vercel dashboard
-3. Set root directory to `app`
-4. Deploy automatically
+**That's it.** The engine is now running autonomously.
 
-### Backend Deployment
 
-Deploy backend to:
-- **Railway**: `railway up`
-- **Render**: Connect GitHub repo
-- **Digital Ocean**: Docker container
-- **AWS EC2**: Ubuntu + systemd service
-
-Update frontend `API_BASE` in `App.tsx` to your deployed backend URL.
 
 ---
 
@@ -201,74 +194,9 @@ PORT=8000
 
 ---
 
-## 🎨 Frontend Features
 
-### Custom Visual Effects
 
-1. **Smooth Water Ripple Background**
-   - 256x256 fluid simulation with Float32Arrays
-   - Mouse-interactive ripples on all pages
-   - Optimized damping (0.95) for 60 FPS performance
 
-2. **Zero-Lag Custom Cursor**
-   - Direct pixel positioning with GPU acceleration
-   - Magnifying glass effect on text hover
-   - `willChange` optimization for smooth tracking
-
-3. **Modern Button Design**
-   - Pill-shaped buttons (50px border-radius)
-   - Character-by-character animations
-   - Gradient shine effects on hover
-
-4. **Auto-Fill Settings**
-   - Loads API keys from backend `.env` on mount
-   - Pre-populates all configuration fields
-   - Save changes back to `.env` file
-
----
-
-## 📂 Project Structure
-
-```
-goalshock/
-├── app/                                    # React Frontend
-│   ├── src/
-│   │   ├── App.tsx                        # Main application
-│   │   ├── index.css                      # Global styles
-│   │   └── components/
-│   │       ├── CustomCursor.tsx           # Zero-lag cursor
-│   │       ├── SubtleRippleBackground.tsx # Water effect
-│   │       └── ButtonText.tsx             # Character animations
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── vercel.json                        # Vercel deployment config
-│
-├── backend/                                # Python Backend
-│   ├── main.py                            # FastAPI app & endpoints
-│   ├── .env                               # Configuration
-│   ├── requirements.txt                   # Dependencies
-│   │
-│   ├── core/                              # Core System
-│   │   ├── data_pipeline.py              # Data acquisition
-│   │   ├── stream_processor.py           # Event enrichment
-│   │   ├── market_synthesizer.py         # Market simulation
-│   │   └── orchestration_engine.py       # Unified router
-│   │
-│   ├── bot/                               # Trading Logic
-│   │   ├── realtime_ingestor.py          # Goal detection
-│   │   ├── market_fetcher.py             # Market prices
-│   │   └── market_mapper.py              # Goal-to-market mapping
-│   │
-│   ├── models/                            # Data Models
-│   │   └── schemas.py                    # Pydantic models
-│   │
-│   └── config/                            # Configuration
-│       └── settings.py                   # Settings management
-│
-└── README.md                              # This file
-```
-
----
 
 ## 🔧 API Endpoints
 
@@ -278,7 +206,6 @@ goalshock/
 - `GET /api/status` - Get bot status & metrics
 
 ### Data Access
-- `GET /api/trades` - Get trade history
 - `GET /api/markets` - Get prediction markets
 - `GET /api/markets/live` - Get live soccer matches
 - `GET /api/performance` - Get performance metrics
@@ -437,44 +364,8 @@ curl http://localhost:8000/api/status
 
 ---
 
-## 🤝 For Hiring Managers & Developers
 
-### Skills Demonstrated
 
-**Backend Engineering**:
-- ✅ Modern Python (FastAPI, AsyncIO, Pydantic)
-- ✅ WebSocket real-time communication
-- ✅ Clean architecture & separation of concerns
-- ✅ Advanced data modeling (Brownian Motion, GARCH)
-- ✅ API design & documentation (OpenAPI/Swagger)
-- ✅ Docker containerization
-- ✅ Structured logging
-
-**Frontend Engineering**:
-- ✅ React 18 with TypeScript
-- ✅ Modern hooks & state management
-- ✅ WebSocket integration
-- ✅ Advanced animations (Framer Motion)
-- ✅ Custom cursor & canvas effects
-- ✅ Responsive design
-- ✅ Performance optimization
-
-**System Design**:
-- ✅ Low-latency event-driven architecture
-- ✅ Risk management framework
-- ✅ Graceful error handling
-- ✅ Production-ready deployment
-- ✅ Scalable architecture
-
-### Code Quality
-
-- **Type Safety**: Full TypeScript + Pydantic validation
-- **Error Handling**: Try/catch with graceful degradation
-- **Logging**: Structured logs for debugging
-- **Documentation**: Inline comments + comprehensive README
-- **Testing Ready**: Modular design for unit tests
-
----
 
 ## 📄 License
 
@@ -482,14 +373,3 @@ MIT License - GoalShock Trading Systems
 
 ---
 
-## 📞 Contact & Support
-
-**GitHub**: [Your GitHub URL]
-**Email**: [Your Email]
-**Demo**: [Live Demo URL if deployed]
-
----
-
-**⚡ Built for speed. Engineered for precision. Ready for production.**
-
-**Setup Time**: < 2 minutes | **WebSocket Real-Time** | **Full Stack**: React + FastAPI
