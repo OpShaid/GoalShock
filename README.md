@@ -23,7 +23,39 @@ GoalShock is a **full-stack real-time trading platform** for soccer prediction m
 ✅ **Auto-fill settings** from environment variables
 ✅ **Advanced market simulation** for backtesting and analysis
 
+### Headless mode (NEW) - Autonomous Soccer Trading Engine
+Headless autonomous trading engine for soccer prediction markets. Runs completely independently via CLI.
+
+Architecture Real APIs No Calculations
+
+🎯 What It Does
+Monitors live soccer matches via API-Football
+Detects goals in real-time by comparing scores
+Identifies underdog from pre-match orderbook odds
+Validates underdog is LEADING (not just tied)
+Executes trade on Polymarket/Kalshi using raw orderbook prices
+Monitors positions continuously for take-profit / stop-loss
+Zero frontend dependency. The engine runs autonomously.
+
 ---
+
+## 🚀 Quick Start New Headless
+
+```bash
+# 1. Install dependencies
+cd backend
+pip install -r requirements.txt
+
+# 2. Configure API keys
+cp .env.example .env
+nano .env  # Add your API keys
+
+# 3. Run headless engine
+python engine.py --mode headless
+```
+
+**That's it.** The engine is now running autonomously.
+ 
 
 ## 🚀 Quick Start Guide
 
@@ -65,24 +97,6 @@ npm run dev
 
 ---
 
----
-
-## 🚀 Quick Start
-
-```bash
-# 1. Install dependencies
-cd backend
-pip install -r requirements.txt
-
-# 2. Configure API keys
-cp .env.example .env
-nano .env  # Add your API keys
-
-# 3. Run headless engine
-python engine.py --mode headless
-```
-
-**That's it.** The engine is now running autonomously.
 
 
 
