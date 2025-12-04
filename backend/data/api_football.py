@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class LiveFixture:
-    """Live soccer fixture data"""
     fixture_id: int
     league_id: int
     league_name: str
