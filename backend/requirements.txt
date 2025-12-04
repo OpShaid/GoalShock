@@ -1,7 +1,17 @@
+# GoalShock Trading Engine - Python Dependencies
+
+# FastAPI & Server
 fastapi==0.104.1
-uvicorn==0.24.0
-websockets==12.0
+uvicorn[standard]==0.24.0
 python-dotenv==1.0.0
+
+# HTTP & WebSocket Clients
 httpx==0.25.1
+websockets==12.0
 aiohttp==3.9.0
+
+# Data Validation
 pydantic==2.5.0
+
+# Async Support
+asyncio==3.4.3
