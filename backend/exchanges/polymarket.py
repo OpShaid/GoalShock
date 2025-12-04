@@ -1,7 +1,4 @@
-"""
-Polymarket API Integration
-Direct orderbook access - NO probability calculations
-"""
+
 import os
 import asyncio
 import httpx
@@ -13,13 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class PolymarketClient:
-    """
-    Polymarket CLOB (Central Limit Order Book) client
-
-    Prices are ALREADY probabilities:
-    - YES price of 0.42 = 42% probability
-    - NO price of 0.58 = 58% probability
-    """
+    
+    #Polymarket clob client so 
+    #Prices are ALREADY probabilities
+   
 
     def __init__(self):
         self.api_key = os.getenv("POLYMARKET_API_KEY", "")
@@ -30,11 +24,7 @@ class PolymarketClient:
         logger.info("📊 Polymarket client initialized")
 
     async def get_markets_by_event(self, event_name: str) -> List[Dict]:
-        """
-        Search for markets by event name (e.g., "Manchester City vs Liverpool")
-
-        Returns list of markets with YES/NO prices
-        """
+       
         try:
             response = await self.client.get(
                 f"{self.gamma_url}/markets",
@@ -55,25 +45,7 @@ class PolymarketClient:
             return []
 
     async def get_orderbook(self, token_id: str) -> Optional[Dict]:
-        """
-        Get orderbook for a specific market token
-
-        Returns:
-        {
-            "market": "Man City to win",
-            "asset_id": "0x123...",
-            "bids": [
-                {"price": "0.42", "size": "1500.50"},  # YES @ 42%
-                {"price": "0.41", "size": "2000.00"}
-            ],
-            "asks": [
-                {"price": "0.43", "size": "1200.00"},
-                {"price": "0.44", "size": "800.00"}
-            ]
-        }
-
-        CRITICAL: Prices are RAW probabilities - NO CONVERSION NEEDED
-        """
+       
         try:
             response = await self.client.get(
                 f"{self.base_url}/book",
@@ -86,7 +58,7 @@ class PolymarketClient:
 
             orderbook = response.json()
 
-            # Extract best bid/ask (top of book)
+         
             bids = orderbook.get("bids", [])
             asks = orderbook.get("asks", [])
 
@@ -94,8 +66,8 @@ class PolymarketClient:
                 logger.warning(f"Empty orderbook for token {token_id}")
                 return None
 
-            best_bid = float(bids[0]["price"])  # Highest YES buy price
-            best_ask = float(asks[0]["price"])  # Lowest YES sell price
+            best_bid = float(bids[0]["price"])  
+            best_ask = float(asks[0]["price"]) 
             mid_price = (best_bid + best_ask) / 2
 
             logger.debug(f"Orderbook for {token_id}:")
@@ -117,18 +89,12 @@ class PolymarketClient:
             return None
 
     async def get_yes_price(self, token_id: str) -> Optional[float]:
-        """
-        Get current YES price (to buy outcome)
-
-        Returns raw probability (e.g., 0.35 = 35%)
-        NO IMPLIED PROBABILITY CALCULATION - THIS IS THE PROBABILITY
-        """
+       
         orderbook = await self.get_orderbook(token_id)
 
         if not orderbook:
             return None
 
-        # Return best ask (price to buy YES)
         yes_price = orderbook["best_ask"]
 
         logger.info(f"YES price for {token_id}: {yes_price:.4f} ({yes_price*100:.1f}%)")
@@ -138,24 +104,13 @@ class PolymarketClient:
     async def place_order(
         self,
         token_id: str,
-        side: str,  # 'BUY' or 'SELL'
+        side: str,  
         price: float,
         size: float
     ) -> Optional[Dict]:
-        """
-        Place limit order on Polymarket
-
-        Args:
-            token_id: Market token ID
-            side: 'BUY' or 'SELL'
-            price: Limit price (e.g., 0.42 for 42%)
-            size: Order size in USD
-
-        Returns order confirmation or None if failed
-        """
+        
         try:
-            # Polymarket requires signed orders
-            # In production: Use private key to sign order
+          
             order_payload = {
                 "token_id": token_id,
                 "side": side.upper(),
@@ -164,8 +119,8 @@ class PolymarketClient:
                 "timestamp": int(datetime.now().timestamp())
             }
 
-            # TODO: Sign order with private key
-            # signature = sign_order(order_payload, private_key)
+            #daniel in production we would need A PRIVATE KEY
+            signature = sign_order(order_payload, private_key) 
 
             response = await self.client.post(
                 f"{self.base_url}/order",
@@ -186,5 +141,4 @@ class PolymarketClient:
             return None
 
     async def close(self):
-        """Close HTTP client"""
         await self.client.aclose()
