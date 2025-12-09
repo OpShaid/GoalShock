@@ -1,8 +1,4 @@
-"""
-Unified Trading Engine
-Combines WebSocket goal listener with both alpha strategies
-Supports simulation and live trading modes
-"""
+
 import os
 import asyncio
 import logging
@@ -19,10 +15,9 @@ from exchanges.polymarket import PolymarketClient
 from exchanges.kalshi import KalshiClient
 from data.api_football import APIFootballClient
 
-# Load environment
 load_dotenv()
 
-# Configure logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
@@ -33,13 +28,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EngineConfig:
-    """Configuration for the unified engine"""
     mode: TradingMode = TradingMode.SIMULATION
     enable_alpha_one: bool = True
     enable_alpha_two: bool = True
     enable_websocket: bool = True
     
-    # API Keys (loaded from environment)
     api_football_key: str = ""
     polymarket_key: str = ""
     kalshi_key: str = ""
@@ -47,7 +40,6 @@ class EngineConfig:
     
     @classmethod
     def from_env(cls) -> "EngineConfig":
-        """Load configuration from environment variables"""
         mode_str = os.getenv("TRADING_MODE", "simulation").lower()
         mode = TradingMode.LIVE if mode_str == "live" else TradingMode.SIMULATION
         
@@ -65,24 +57,21 @@ class EngineConfig:
 
 class UnifiedTradingEngine:
     """
-    Unified Trading Engine
-    
+    Daniel This is the new features:
     Integrates:
     1. WebSocket Goal Listener (replaces polling)
     2. Alpha One: Underdog Goal Momentum Strategy
     3. Alpha Two: Late-Stage Compression Strategy
-    
     Features:
-    - Dual mode: Simulation for backtesting, Live for real trading
-    - Real-time event processing via WebSocket
-    - Automatic position management
-    - Performance tracking and logging
+    Dual mode: Simulation for backtesting, Live for real trading
+     Real-time event processing via WebSocket
+     Automatic position management
+    Performance tracking and logging
     """
     
     def __init__(self, config: Optional[EngineConfig] = None):
         self.config = config or EngineConfig.from_env()
         
-        # Initialize exchange clients
         self.polymarket: Optional[PolymarketClient] = None
         self.kalshi: Optional[KalshiClient] = None
         self.api_football: Optional[APIFootballClient] = None
@@ -96,12 +85,10 @@ class UnifiedTradingEngine:
         if self.config.api_football_key:
             self.api_football = APIFootballClient()
         
-        # Initialize goal listener
         self.goal_listener: Optional[HybridGoalListener] = None
         if self.config.enable_websocket:
             self.goal_listener = HybridGoalListener(self.config.api_football_key)
         
-        # Initialize alpha strategies
         self.alpha_one: Optional[AlphaOneUnderdog] = None
         self.alpha_two: Optional[AlphaTwoLateCompression] = None
         
@@ -119,11 +106,9 @@ class UnifiedTradingEngine:
                 simulation_mode=self.config.mode == TradingMode.SIMULATION
             )
         
-        # Engine state
         self.running = False
         self.start_time: Optional[datetime] = None
         
-        # Statistics
         self.goals_processed = 0
         self.signals_generated = 0
         
@@ -139,17 +124,14 @@ class UnifiedTradingEngine:
         logger.info("=" * 60)
 
     async def start(self):
-        """Start the unified trading engine"""
         self.running = True
         self.start_time = datetime.now()
         
         logger.info("Starting Unified Trading Engine...")
         
-        # Register goal callback
         if self.goal_listener and self.alpha_one:
             self.goal_listener.register_goal_callback(self._on_goal_event)
         
-        # Start all components
         tasks = []
         
         if self.goal_listener:
@@ -161,13 +143,13 @@ class UnifiedTradingEngine:
         if self.alpha_two:
             tasks.append(asyncio.create_task(self.alpha_two.start()))
         
-        # Start pre-match odds fetcher
+       
         tasks.append(asyncio.create_task(self._pre_match_odds_loop()))
         
-        # Start live fixture updater for Alpha Two
+      
         tasks.append(asyncio.create_task(self._live_fixture_loop()))
         
-        # Start stats reporter
+       
         tasks.append(asyncio.create_task(self._stats_reporter_loop()))
         
         try:
@@ -178,7 +160,6 @@ class UnifiedTradingEngine:
             await self.stop()
 
     async def stop(self):
-        """Stop the engine and cleanup"""
         self.running = False
         
         if self.goal_listener:
@@ -195,16 +176,16 @@ class UnifiedTradingEngine:
         
         logger.info("Unified Trading Engine stopped")
         
-        # Export logs
+        #
         self._export_session_logs()
 
     async def _on_goal_event(self, goal: GoalEventWS):
-        """Handle incoming goal event from WebSocket"""
+        
         self.goals_processed += 1
         
         logger.info(f"Processing goal event: {goal.player} ({goal.team})")
         
-        # Process with Alpha One
+        
         if self.alpha_one:
             signal = await self.alpha_one.on_goal_event(goal)
             
@@ -212,7 +193,6 @@ class UnifiedTradingEngine:
                 self.signals_generated += 1
                 logger.info(f"Alpha One signal generated: {signal.signal_id}")
         
-        # Feed to Alpha Two for late-stage monitoring
         if self.alpha_two:
             fixture_data = {
                 "fixture_id": goal.fixture_id,
@@ -230,23 +210,19 @@ class UnifiedTradingEngine:
             await self.alpha_two.feed_live_fixture_update(fixture_data)
 
     async def _pre_match_odds_loop(self):
-        """Fetch and cache pre-match odds for upcoming fixtures"""
         while self.running:
             try:
                 if self.api_football and self.alpha_one:
-                    # Get today's fixtures
                     fixtures = await self._fetch_todays_fixtures()
                     
                     for fixture in fixtures:
                         fixture_id = fixture.get("fixture_id")
                         
-                        # Get pre-match odds
                         odds = await self._fetch_pre_match_odds(fixture_id)
                         
                         if odds:
                             await self.alpha_one.cache_pre_match_odds(fixture_id, odds)
                 
-                # Refresh every 30 minutes
                 await asyncio.sleep(1800)
                 
             except Exception as e:
@@ -254,7 +230,6 @@ class UnifiedTradingEngine:
                 await asyncio.sleep(60)
 
     async def _fetch_todays_fixtures(self) -> List[Dict]:
-        """Fetch today's fixtures"""
         if not self.api_football:
             return []
         
@@ -266,17 +241,13 @@ class UnifiedTradingEngine:
             return []
 
     async def _fetch_pre_match_odds(self, fixture_id: int) -> Optional[Dict[str, float]]:
-        """Fetch pre-match odds from exchange or bookmaker"""
-        # Try Polymarket first
         if self.polymarket:
             try:
-                # Search for markets related to this fixture
-                # This would need proper market discovery
+               
                 pass
             except Exception:
                 pass
         
-        # Fallback to API-Football bookmaker odds
         if self.api_football:
             try:
                 return await self.api_football.get_pre_match_odds(fixture_id)
@@ -286,14 +257,12 @@ class UnifiedTradingEngine:
         return None
 
     async def _live_fixture_loop(self):
-        """Feed live fixture updates to Alpha Two"""
         while self.running:
             try:
                 if self.alpha_two and self.api_football:
                     fixtures = await self.api_football.get_live_fixtures()
                     
                     for fixture in fixtures:
-                        # Get market prices for this fixture
                         market_prices = await self._get_fixture_market_prices(fixture)
                         
                         fixture_data = {
@@ -312,14 +281,13 @@ class UnifiedTradingEngine:
                         
                         await self.alpha_two.feed_live_fixture_update(fixture_data)
                 
-                await asyncio.sleep(30)  # Update every 30 seconds
+                await asyncio.sleep(30)  
                 
             except Exception as e:
                 logger.error(f"Live fixture loop error: {e}")
                 await asyncio.sleep(30)
 
     async def _get_fixture_market_prices(self, fixture) -> Dict[str, float]:
-        """Get current market prices for a fixture"""
         if self.polymarket:
             try:
                 markets = await self.polymarket.get_markets_by_event(
@@ -341,7 +309,7 @@ class UnifiedTradingEngine:
         """Periodically report engine statistics"""
         while self.running:
             try:
-                await asyncio.sleep(300)  # Report every 5 minutes
+                await asyncio.sleep(300) 
                 
                 logger.info("=" * 40)
                 logger.info("ENGINE STATISTICS")
@@ -368,7 +336,6 @@ class UnifiedTradingEngine:
                 logger.error(f"Stats reporter error: {e}")
 
     def _export_session_logs(self):
-        """Export session logs and statistics"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         if self.alpha_one:
@@ -381,7 +348,6 @@ class UnifiedTradingEngine:
 
 
 async def main():
-    """Entry point for the unified trading engine"""
     import argparse
     
     parser = argparse.ArgumentParser(description="Unified Trading Engine")
@@ -411,21 +377,17 @@ async def main():
     
     args = parser.parse_args()
     
-    # Create config
     config = EngineConfig.from_env()
     config.mode = TradingMode.LIVE if args.mode == "live" else TradingMode.SIMULATION
     config.enable_alpha_one = args.alpha_one
     config.enable_alpha_two = args.alpha_two
     config.enable_websocket = not args.no_websocket
     
-    # Create and start engine
     engine = UnifiedTradingEngine(config)
     await engine.start()
 
 
 if __name__ == "__main__":
-    # Create logs directory
     os.makedirs("logs", exist_ok=True)
     
-    # Run engine
     asyncio.run(main())
