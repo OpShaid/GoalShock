@@ -1,6 +1,6 @@
-# GoalShock Elite Trading Engine v2.0
+# GoalShock Elite Trading Engine v1.1.2
 
-A production-grade autonomous trading system for Polymarket prediction markets. Features dual-alpha strategies: **Oscillating Arbitrage** and **Late-Stage Compression** - replicating the success of top traders with 99.7% hit rates.
+A autonomous trading system for Polymarket prediction markets. Features dual-alpha strategies: **Oscillating Arbitrage** and **Late-Stage Compression** - replicating the success of top traders with 99.7% hit rates.
 
 ---
 
@@ -34,7 +34,7 @@ Replicating trader 0xa676582530fb1a63502d5f5f5db9fb8d1449e38b:
 
 ---
 
-## 🚀 Quick Start
+
 
 ### Prerequisites
 
@@ -137,7 +137,7 @@ LOG_LEVEL=INFO
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                  Elite Trading Engine v2.0                       │
+│                                         │
 │  ┌─────────────────────────────────────────────────────────────┐ │
 │  │                   EliteTradingEngine                        │ │
 │  │  • Orchestrates both alpha strategies                       │ │
@@ -266,28 +266,10 @@ python run.py
 
 Runs a 30-minute backtest using real market data without placing orders.
 
----
 
-## 📂 Project Structure
 
-```
-backend/
-├── engine.py                 # Main trading engine (dual-alpha)
-├── run.py                    # Quick start script
-├── requirements.txt          # Python dependencies
-├── .env.example              # Environment template
-│
-├── config/
-│   └── settings.py           # Configuration management
-│
-├── exchanges/
-│   └── polymarket.py         # Polymarket CLOB client
-│
-└── models/
-    └── schemas.py            # Pydantic models
-```
 
----
+
 
 ## 🔧 Troubleshooting
 
@@ -340,34 +322,4 @@ pip install -r requirements.txt --force-reinstall
 
 ---
 
-## 🤝 Skills Demonstrated
-
-**Quantitative Trading**
-- Market microstructure understanding
-- Arbitrage opportunity detection
-- Risk management frameworks
-- Real-time position tracking
-
-**Backend Engineering**
-- Async Python (asyncio, aiohttp)
-- WebSocket real-time streaming
-- API client design patterns
-- Rate limiting and caching
-
-**System Design**
-- Event-driven architecture
-- Graceful error handling
-- Production-ready deployment
-- Comprehensive logging
-
----
-
-## 📄 License
-
-MIT License
-
----
-
-**⚡ Built for speed. Engineered for precision. Ready for production.**
-
-**Dual-Alpha Strategy** | **WebSocket-First** | **99.7% Hit Rate Target**
+Author: Shaid T
