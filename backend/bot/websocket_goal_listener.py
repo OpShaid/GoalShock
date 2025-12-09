@@ -1,8 +1,4 @@
-"""
-WebSocket Goal Event Listener
-Replaces polling with real-time WebSocket connections for goal events
-Handles reconnection, parsing, and error handling for network issues
-"""
+
 import asyncio
 import json
 import logging
@@ -18,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GoalEventWS:
-    """Goal event from WebSocket stream"""
     fixture_id: int
     league_id: int
     league_name: str
@@ -29,7 +24,7 @@ class GoalEventWS:
     minute: int
     home_score: int
     away_score: int
-    goal_type: str  # "Normal", "Penalty", "Own Goal"
+    goal_type: str
     timestamp: datetime
     
     def to_dict(self) -> Dict:
@@ -50,36 +45,19 @@ class GoalEventWS:
 
 
 class WebSocketGoalListener:
-    """
-    Real-time goal event listener using WebSocket
+  
     
-    REPLACES POLLING - Uses WebSocket for instant goal detection
-    
-    Supported providers:
-    1. API-Football LiveScore WebSocket (primary)
-    2. SofaScore WebSocket (backup)
-    3. Custom Sports Data Provider (fallback)
-    
-    Features:
-    - Auto-reconnection with exponential backoff
-    - Multiple provider failover
-    - Event filtering for supported leagues only
-    - Duplicate goal detection
-    """
-    
-    # Supported leagues for goal detection
     SUPPORTED_LEAGUES = {
-        39,   # Premier League
-        140,  # La Liga
-        78,   # Bundesliga
-        135,  # Serie A
-        61,   # Ligue 1
-        2,    # Champions League
-        3,    # Europa League
-        848,  # Conference League
+        39,   
+        140, 
+        78,   
+        135,  
+        61,   
+        2,    
+        3,    
+        848,  
     }
     
-    # WebSocket endpoints (replace with actual provider URLs)
     WS_ENDPOINTS = {
         "primary": "wss://api-football-v1.p.rapidapi.com/ws/live",
         "sofascore": "wss://ws.sofascore.com/live/events",
@@ -91,30 +69,25 @@ class WebSocketGoalListener:
         self.running = False
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
         
-        # Callbacks for goal events
         self.goal_callbacks: List[Callable] = []
         
-        # Track seen goals to prevent duplicates
         self.seen_goals: Set[str] = set()
         
-        # Connection state
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 10
-        self.base_reconnect_delay = 2  # seconds
-        self.max_reconnect_delay = 60  # seconds
+        self.base_reconnect_delay = 2  
+        self.max_reconnect_delay = 60  
         
-        # Active fixtures cache
+        
         self.active_fixtures: Dict[int, Dict] = {}
         
         logger.info("WebSocket Goal Listener initialized")
 
     def register_goal_callback(self, callback: Callable):
-        """Register callback function to be called when goals are detected"""
         self.goal_callbacks.append(callback)
         logger.info(f"Registered goal callback: {callback.__name__}")
 
     async def start(self):
-        """Start the WebSocket listener with auto-reconnection"""
         self.running = True
         logger.info("Starting WebSocket Goal Listener...")
         
@@ -128,14 +101,12 @@ class WebSocketGoalListener:
                     await self._handle_reconnection()
     
     async def stop(self):
-        """Stop the WebSocket listener"""
         self.running = False
         if self.ws:
             await self.ws.close()
         logger.info("WebSocket Goal Listener stopped")
 
     async def _connect_and_listen(self):
-        """Connect to WebSocket and listen for goal events"""
         endpoint = self.WS_ENDPOINTS["primary"]
         
         headers = {}
@@ -153,14 +124,12 @@ class WebSocketGoalListener:
             close_timeout=5
         ) as ws:
             self.ws = ws
-            self.reconnect_attempts = 0  # Reset on successful connection
+            self.reconnect_attempts = 0  
             
             logger.info("WebSocket connected successfully")
             
-            # Subscribe to live goal events
             await self._subscribe_to_goals()
             
-            # Listen for messages
             async for message in ws:
                 if not self.running:
                     break
@@ -172,7 +141,6 @@ class WebSocketGoalListener:
         if not self.ws:
             return
             
-        # Subscribe to live fixtures for supported leagues
         subscription = {
             "type": "subscribe",
             "channels": ["live_goals", "live_scores"],
@@ -188,7 +156,6 @@ class WebSocketGoalListener:
         try:
             data = json.loads(message)
             
-            # Handle different message types
             msg_type = data.get("type", "")
             
             if msg_type == "goal":
@@ -196,7 +163,7 @@ class WebSocketGoalListener:
             elif msg_type == "fixture_update":
                 await self._handle_fixture_update(data)
             elif msg_type == "heartbeat":
-                pass  # Ignore heartbeats
+                pass  
             elif msg_type == "error":
                 logger.error(f"WebSocket error message: {data.get('message', 'Unknown error')}")
             else:
@@ -218,12 +185,10 @@ class WebSocketGoalListener:
             fixture_id = fixture.get("id")
             league_id = league.get("id")
             
-            # Filter unsupported leagues
             if league_id not in self.SUPPORTED_LEAGUES:
                 logger.debug(f"Ignoring goal from unsupported league: {league_id}")
                 return
             
-            # Create unique goal ID for deduplication
             goal_id = f"{fixture_id}_{goal.get('minute', 0)}_{goal.get('player', 'unknown')}"
             
             if goal_id in self.seen_goals:
@@ -232,11 +197,9 @@ class WebSocketGoalListener:
             
             self.seen_goals.add(goal_id)
             
-            # Clean up old seen goals (keep last 1000)
             if len(self.seen_goals) > 1000:
                 self.seen_goals = set(list(self.seen_goals)[-500:])
             
-            # Create goal event
             goal_event = GoalEventWS(
                 fixture_id=fixture_id,
                 league_id=league_id,
@@ -255,7 +218,6 @@ class WebSocketGoalListener:
             logger.info(f"GOAL DETECTED: {goal_event.player} ({goal_event.team}) - {goal_event.minute}'")
             logger.info(f"  Score: {goal_event.home_team} {goal_event.home_score} - {goal_event.away_score} {goal_event.away_team}")
             
-            # Notify all callbacks
             await self._notify_goal_callbacks(goal_event)
             
         except Exception as e:
@@ -290,13 +252,11 @@ class WebSocketGoalListener:
             self.running = False
             return
         
-        # Exponential backoff with jitter
         delay = min(
             self.base_reconnect_delay * (2 ** (self.reconnect_attempts - 1)),
             self.max_reconnect_delay
         )
         
-        # Add jitter (0-25% of delay)
         import random
         jitter = delay * random.uniform(0, 0.25)
         delay += jitter
@@ -305,19 +265,11 @@ class WebSocketGoalListener:
         await asyncio.sleep(delay)
 
     def get_active_fixtures(self) -> List[Dict]:
-        """Get list of currently active fixtures"""
         return list(self.active_fixtures.values())
 
 
 class HybridGoalListener:
-    """
-    Hybrid Goal Listener - WebSocket primary, HTTP polling fallback
     
-    Uses WebSocket for real-time updates but falls back to polling
-    if WebSocket connection fails repeatedly.
-    
-    This ensures goal events are never missed while preserving API quota.
-    """
     
     def __init__(self, api_key: str = ""):
         self.api_key = api_key
@@ -325,34 +277,26 @@ class HybridGoalListener:
         self.running = False
         self.use_polling_fallback = False
         
-        # HTTP client for polling fallback
         self.http_client = httpx.AsyncClient(timeout=10.0)
         
-        # Previous scores for polling-based goal detection
         self.previous_scores: Dict[int, tuple] = {}
         
-        # Goal callbacks
         self.goal_callbacks: List[Callable] = []
         
     def register_goal_callback(self, callback: Callable):
-        """Register callback for goal events"""
         self.goal_callbacks.append(callback)
         self.ws_listener.register_goal_callback(callback)
 
     async def start(self):
-        """Start hybrid listener"""
         self.running = True
         
-        # Start WebSocket listener
         ws_task = asyncio.create_task(self._run_websocket())
         
-        # Start health monitor (switches to polling if WS fails)
         monitor_task = asyncio.create_task(self._health_monitor())
         
         await asyncio.gather(ws_task, monitor_task, return_exceptions=True)
 
     async def stop(self):
-        """Stop hybrid listener"""
         self.running = False
         await self.ws_listener.stop()
         await self.http_client.aclose()
@@ -368,7 +312,7 @@ class HybridGoalListener:
     async def _health_monitor(self):
         """Monitor connection health and switch to polling if needed"""
         while self.running:
-            await asyncio.sleep(30)  # Check every 30 seconds
+            await asyncio.sleep(30)  
             
             if self.use_polling_fallback:
                 logger.warning("Using HTTP polling fallback")
@@ -406,11 +350,9 @@ class HybridGoalListener:
                 if fixture_id in self.previous_scores:
                     prev = self.previous_scores[fixture_id]
                     
-                    # Detect home goal
                     if current[0] > prev[0]:
                         await self._emit_polling_goal(fixture, "home")
                     
-                    # Detect away goal
                     if current[1] > prev[1]:
                         await self._emit_polling_goal(fixture, "away")
                 
