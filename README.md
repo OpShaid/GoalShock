@@ -6,7 +6,7 @@ A autonomous trading system for Polymarket prediction markets. Features dual-alp
 
 ## 🎯 Overview
 
-GoalShock v2.0 is an **elite-level autonomous trading engine** designed for sports prediction markets:
+GoalShock v1.1.2 is an **elite-level autonomous trading engine** designed for sports prediction markets:
 
 - **Oscillating Arbitrage** - Buy YES+NO when combined cost < $1.00 for guaranteed profit
 - **Late-Stage Compression** - Clip near-certain outcomes seconds before resolution
@@ -323,3 +323,4 @@ pip install -r requirements.txt --force-reinstall
 ---
 
 Author: Shaid T
+
