@@ -1,7 +1,4 @@
-"""
-Stream Processor - Event Enrichment Layer
-Processes and enriches goal events with market context
-"""
+
 from typing import List, Dict
 from datetime import datetime
 import random
@@ -11,13 +8,11 @@ class StreamProcessor:
         self._event_cache = []
 
     async def enrich_events(self, raw_events: List, market_data: Dict) -> List[Dict]:
-        """Enrich goal events with market context and probabilities"""
         enriched = []
 
         markets = market_data.get("markets", [])
 
         for event in raw_events:
-            # Find relevant market for this event
             relevant_market = self._match_event_to_market(event, markets)
 
             enriched_event = {
@@ -35,8 +30,7 @@ class StreamProcessor:
         return enriched
 
     def _match_event_to_market(self, event, markets: List[Dict]) -> Dict:
-        """Match goal event to relevant prediction market"""
-        # Simple matching logic - in production would use more sophisticated matching
+
         for market in markets:
             if event.team in market.get("question", ""):
                 return {
@@ -48,7 +42,6 @@ class StreamProcessor:
         return None
 
     def _generate_market_context(self) -> Dict:
-        """Generate synthetic market context when no match found"""
         return {
             "market_id": f"synth_{random.randint(1000, 9999)}",
             "question": "Related match outcome market",
@@ -57,7 +50,6 @@ class StreamProcessor:
         }
 
     async def aggregate_statistics(self, events: List[Dict]) -> Dict:
-        """Compute aggregate statistics from event stream"""
         if not events:
             return {
                 "total_goals": 0,
@@ -70,7 +62,6 @@ class StreamProcessor:
         unique_matches = len(set(e["match_id"] for e in events))
         avg_minute = sum(e["minute"] for e in events) / total_goals
 
-        # Top scorers
         player_goals = {}
         for event in events:
             player = event["player"]
