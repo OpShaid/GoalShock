@@ -2,10 +2,10 @@
 
 ## ✅ Quick Install (Recommended)
 
-```cmd
+\`\`\`cmd
 cd backend
 setup-windows.bat
-```
+\`\`\`
 
 That's it! The script handles everything automatically.
 
@@ -24,10 +24,10 @@ That's it! The script handles everything automatically.
 
 ### Option 1: Automated Setup (Easiest)
 
-```cmd
+\`\`\`cmd
 cd backend
 setup-windows.bat
-```
+\`\`\`
 
 This script will:
 1. Check Python installation
@@ -39,7 +39,7 @@ This script will:
 
 ### Option 2: Manual Installation
 
-```cmd
+\`\`\`cmd
 cd backend
 
 # Create virtual environment
@@ -59,14 +59,14 @@ copy .env.example .env
 
 # Run server
 python main.py
-```
+\`\`\`
 
 ### Option 3: Docker (Cross-platform)
 
-```cmd
+\`\`\`cmd
 cd backend
 docker-compose up
-```
+\`\`\`
 
 ---
 
@@ -107,35 +107,35 @@ If you see this, you're using wrong package versions. Delete `venv` and re-run `
 
 **Solutions:**
 - Option 1: Kill the process using port 8000
-  ```cmd
+  \`\`\`cmd
   netstat -ano | findstr :8000
   taskkill /PID <PID> /F
-  ```
+  \`\`\`
 
 - Option 2: Change port in `.env`
-  ```env
+  \`\`\`env
   PORT=8001
-  ```
+  \`\`\`
 
 ### Problem: "ImportError" or "ModuleNotFoundError"
 
 **Solutions:**
 1. Make sure virtual environment is activated:
-   ```cmd
+   \`\`\`cmd
    venv\Scripts\activate.bat
-   ```
+   \`\`\`
    You should see `(venv)` in your prompt.
 
 2. Reinstall dependencies:
-   ```cmd
+   \`\`\`cmd
    pip install -r requirements.txt --force-reinstall
-   ```
+   \`\`\`
 
 3. Nuclear option - start fresh:
-   ```cmd
+   \`\`\`cmd
    rmdir /s /q venv
    setup-windows.bat
-   ```
+   \`\`\`
 
 ---
 
@@ -161,7 +161,7 @@ All packages in `requirements.txt` have been tested on Windows and have **precom
 
 After installation, verify everything works:
 
-```cmd
+\`\`\`cmd
 # Check Python
 python --version
 
@@ -174,7 +174,7 @@ python -c "import fastapi, uvicorn, pydantic, aiohttp; print('All packages insta
 
 # Test API
 python -c "import requests; print(requests.get('http://localhost:8000/health').json())"
-```
+\`\`\`
 
 ---
 
@@ -184,41 +184,41 @@ python -c "import requests; print(requests.get('http://localhost:8000/health').j
 
 If you have multiple Python versions:
 
-```cmd
+\`\`\`cmd
 # Use specific version
 py -3.11 -m venv venv
 
 # Or with full path
 C:\Python311\python.exe -m venv venv
-```
+\`\`\`
 
 ### Install in Developer Mode
 
 For development with hot reload:
 
-```cmd
+\`\`\`cmd
 # Install dev dependencies
 pip install -r requirements.txt
 
 # Run with auto-reload
 uvicorn main:app --reload
-```
+\`\`\`
 
 ### Offline Installation
 
 If you need to install without internet:
 
 1. On a machine with internet, download all wheels:
-   ```cmd
+   \`\`\`cmd
    pip download -r requirements.txt --dest wheels
-   ```
+   \`\`\`
 
 2. Copy `wheels` folder to offline machine
 
 3. Install from wheels:
-   ```cmd
+   \`\`\`cmd
    pip install --no-index --find-links=wheels -r requirements.txt
-   ```
+   \`\`\`
 
 ---
 
@@ -226,7 +226,7 @@ If you need to install without internet:
 
 Edit `.env` file to configure:
 
-```env
+\`\`\`env
 # Server
 PORT=8000
 HOST=0.0.0.0
@@ -243,7 +243,7 @@ UNDERDOG_THRESHOLD=0.50
 # Logging
 LOG_LEVEL=INFO
 LOG_TO_FILE=true
-```
+\`\`\`
 
 ---
 
@@ -252,16 +252,16 @@ LOG_TO_FILE=true
 1. **Check Python version**: `python --version` (should be 3.10, 3.11, or 3.12)
 2. **Run as Administrator**: Right-click terminal → "Run as Administrator"
 3. **Delete everything and start over**:
-   ```cmd
+   \`\`\`cmd
    rmdir /s /q venv
    del .env
    setup-windows.bat
-   ```
+   \`\`\`
 
 4. **Try Docker instead**:
-   ```cmd
+   \`\`\`cmd
    docker-compose up
-   ```
+   \`\`\`
 
 5. **Check antivirus**: Sometimes antivirus blocks pip/venv
 
@@ -270,12 +270,12 @@ LOG_TO_FILE=true
 ## ✨ Success!
 
 If you see:
-```
+\`\`\`
 Server will be available at:
   - API:       http://localhost:8000
   - API Docs:  http://localhost:8000/docs
   - WebSocket: ws://localhost:8000/ws
-```
+\`\`\`
 
 **You're all set!** 🎉
 
