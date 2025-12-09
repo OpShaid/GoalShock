@@ -1,7 +1,4 @@
-"""
-Real-time market price fetcher with WebSocket support
-Fetches live odds from Polymarket and Kalshi
-"""
+
 import asyncio
 import json
 import logging
@@ -15,26 +12,21 @@ from ..config.settings import settings
 logger = logging.getLogger(__name__)
 
 class MarketFetcher:
-    """
-    Fetches real-time market prices via WebSocket with HTTP fallback
-    """
+    
     def __init__(self):
         self.client = httpx.AsyncClient(timeout=settings.WS_TIMEOUT)
         self.market_cache: Dict[str, MarketPrice] = {}
         self.update_callbacks: List[Callable] = []
         self.running = False
 
-        # WebSocket connections
         self.polymarket_ws: Optional[websockets.WebSocketClientProtocol] = None
         self.kalshi_ws: Optional[websockets.WebSocketClientProtocol] = None
 
     def register_update_callback(self, callback: Callable):
-        """Register callback for market updates"""
         self.update_callbacks.append(callback)
         logger.info(f"Registered market callback: {callback.__name__}")
 
     async def start(self):
-        """Start fetching market prices"""
         if not settings.has_market_access():
             logger.warning("No market API keys configured - prices unavailable")
             return
@@ -42,7 +34,6 @@ class MarketFetcher:
         self.running = True
         logger.info("Starting real-time market price fetching")
 
-        # Start WebSocket connections
         if settings.POLYMARKET_API_KEY:
             asyncio.create_task(self._connect_polymarket_ws())
 
@@ -50,7 +41,6 @@ class MarketFetcher:
             asyncio.create_task(self._connect_kalshi_ws())
 
     async def stop(self):
-        """Stop fetching"""
         self.running = False
 
         if self.polymarket_ws:
@@ -63,7 +53,6 @@ class MarketFetcher:
         logger.info("Stopped market fetching")
 
     async def _connect_polymarket_ws(self):
-        """Connect to Polymarket WebSocket for real-time prices"""
         while self.running:
             try:
                 async with websockets.connect(
@@ -73,14 +62,12 @@ class MarketFetcher:
                     self.polymarket_ws = ws
                     logger.info("✅ Connected to Polymarket WebSocket")
 
-                    # Subscribe to soccer markets
                     await ws.send(json.dumps({
                         "type": "subscribe",
                         "channel": "markets",
                         "filter": {"tags": ["soccer", "football"]}
                     }))
 
-                    # Listen for updates
                     async for message in ws:
                         if not self.running:
                             break
@@ -93,7 +80,6 @@ class MarketFetcher:
                 await asyncio.sleep(settings.WS_RECONNECT_DELAY)
 
     async def _connect_kalshi_ws(self):
-        """Connect to Kalshi WebSocket for real-time prices"""
         while self.running:
             try:
                 async with websockets.connect(
@@ -103,14 +89,12 @@ class MarketFetcher:
                     self.kalshi_ws = ws
                     logger.info("✅ Connected to Kalshi WebSocket")
 
-                    # Subscribe to soccer markets
                     await ws.send(json.dumps({
                         "type": "subscribe",
                         "market_type": "sports",
                         "sport": "soccer"
                     }))
 
-                    # Listen for updates
                     async for message in ws:
                         if not self.running:
                             break
@@ -123,7 +107,6 @@ class MarketFetcher:
                 await asyncio.sleep(settings.WS_RECONNECT_DELAY)
 
     async def _process_polymarket_update(self, data: Dict):
-        """Process Polymarket price update"""
         try:
             if data.get("type") != "price_update":
                 return
@@ -135,13 +118,11 @@ class MarketFetcher:
             if not all([market_id, yes_price, no_price]):
                 return
 
-            # Update cache
             if market_id in self.market_cache:
                 self.market_cache[market_id].yes_price = yes_price
                 self.market_cache[market_id].no_price = no_price
                 self.market_cache[market_id].last_updated = datetime.now()
 
-            # Notify callbacks
             update = MarketUpdate(
                 market_id=market_id,
                 yes_price=yes_price,
@@ -155,7 +136,6 @@ class MarketFetcher:
             logger.error(f"Failed to process Polymarket update: {e}")
 
     async def _process_kalshi_update(self, data: Dict):
-        """Process Kalshi price update"""
         try:
             if data.get("type") != "market_snapshot":
                 return
@@ -167,17 +147,14 @@ class MarketFetcher:
             if not all([market_id, yes_price, no_price]):
                 return
 
-            # Convert cents to decimal
             yes_price = yes_price / 100.0
             no_price = no_price / 100.0
 
-            # Update cache
             if market_id in self.market_cache:
                 self.market_cache[market_id].yes_price = yes_price
                 self.market_cache[market_id].no_price = no_price
                 self.market_cache[market_id].last_updated = datetime.now()
 
-            # Notify callbacks
             update = MarketUpdate(
                 market_id=market_id,
                 yes_price=yes_price,
@@ -191,7 +168,6 @@ class MarketFetcher:
             logger.error(f"Failed to process Kalshi update: {e}")
 
     async def _notify_update(self, update: MarketUpdate):
-        """Notify all callbacks of market update"""
         for callback in self.update_callbacks:
             try:
                 if asyncio.iscoroutinefunction(callback):
@@ -202,10 +178,7 @@ class MarketFetcher:
                 logger.error(f"Market callback error: {e}")
 
     async def fetch_markets_for_fixture(self, fixture_id: int, home_team: str, away_team: str) -> List[MarketPrice]:
-        """
-        Fetch all markets for a specific fixture
-        Uses HTTP API for initial fetch, then WebSocket for updates
-        """
+        
         markets = []
 
         # Try Polymarket
@@ -218,14 +191,12 @@ class MarketFetcher:
             kalshi_markets = await self._fetch_kalshi_markets(home_team, away_team)
             markets.extend(kalshi_markets)
 
-        # Cache markets
         for market in markets:
             self.market_cache[market.market_id] = market
 
         return markets
 
     async def _fetch_polymarket_markets(self, home_team: str, away_team: str) -> List[MarketPrice]:
-        """Fetch Polymarket markets via HTTP API"""
         try:
             response = await self.client.get(
                 "https://api.polymarket.com/markets",
@@ -245,7 +216,7 @@ class MarketFetcher:
             for m in data.get("markets", []):
                 markets.append(MarketPrice(
                     market_id=m["id"],
-                    fixture_id=0,  # Will be set by mapper
+                    fixture_id=0,  #THis Should maybe Will be set by mapper
                     question=m["question"],
                     yes_price=m["yes_price"],
                     no_price=m["no_price"],
@@ -263,7 +234,6 @@ class MarketFetcher:
             return []
 
     async def _fetch_kalshi_markets(self, home_team: str, away_team: str) -> List[MarketPrice]:
-        """Fetch Kalshi markets via HTTP API"""
         try:
             response = await self.client.get(
                 "https://api.kalshi.com/v1/markets",
@@ -284,7 +254,7 @@ class MarketFetcher:
             for m in data.get("markets", []):
                 markets.append(MarketPrice(
                     market_id=m["ticker"],
-                    fixture_id=0,  # Will be set by mapper
+                    fixture_id=0,  #same thing
                     question=m["title"],
                     yes_price=m["yes_price"] / 100.0,
                     no_price=m["no_price"] / 100.0,
@@ -302,9 +272,7 @@ class MarketFetcher:
             return []
 
     def get_market(self, market_id: str) -> Optional[MarketPrice]:
-        """Get cached market price"""
         return self.market_cache.get(market_id)
 
     def get_all_markets(self) -> List[MarketPrice]:
-        """Get all cached markets"""
         return list(self.market_cache.values())
