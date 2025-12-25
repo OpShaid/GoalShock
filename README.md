@@ -2,7 +2,6 @@
 
 A autonomous trading system for Polymarket prediction markets. Features dual-alpha strategies: **Oscillating Arbitrage** and **Late-Stage Compression** - replicating the success of top traders with 99.7% hit rates.
 
----
 
 ## 🎯 Overview
 
@@ -323,5 +322,6 @@ pip install -r requirements.txt --force-reinstall
 ---
 
 Author: Shaid T
+
 
 
